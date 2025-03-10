@@ -1,5 +1,4 @@
 # app/routes/tab3.py
-
 import sqlite3
 from flask import Blueprint, render_template
 from collections import defaultdict
@@ -12,7 +11,6 @@ def get_db_connection():
     return conn
 
 def categorize_item(name):
-    """Groups items by general category."""
     n = (name or "").lower()
     if 'tent' in n or 'canopy' in n or 'hp' in n or 'pole' in n:
         return 'Tent Tops'
@@ -28,61 +26,39 @@ def categorize_item(name):
         return 'Other'
 
 def needs_service(item):
-    """
-    Checks if an item requires service based on repair, cleaning, or inspection needs.
-    Returns True if item qualifies for Tab 3.
-    """
-    # Cleaning-related issues
     cleaning_fields = ["dirty_or_mud", "leaves", "oil", "mold", "stain", "oxidation", "other"]
-    
-    # Repair-related issues
     repair_fields = ["rip_or_tear", "sewing_repair_needed", "grommet", "rope", "buckle"]
-
-    # Any cleaning or repair flags marked as 1
     needs_cleaning = any(item.get(f, 0) == 1 for f in cleaning_fields)
     needs_repair = any(item.get(f, 0) == 1 for f in repair_fields)
-
-    # Inspection required if 'inspect' or 'inspection' is in status_notes
     needs_inspection = "inspect" in (item.get("status_notes", "").lower())
-
     return needs_cleaning or needs_repair or needs_inspection
 
-@tab3_bp.route("/")
-def show_tab3():
-    """
-    Parent => [ +, Type, total_items ]
-    Aggregates by common_name.
-    Expands to full details of affected items.
-    """
+def get_tab3_content():
     conn = get_db_connection()
     rows = conn.execute("SELECT * FROM items").fetchall()
     conn.close()
 
-    # Filter only items needing service
     data = [dict(r) for r in rows if needs_service(dict(r))]
-
-    # Group by type
     type_map = defaultdict(list)
     for itm in data:
-        t = categorize_item(itm.get("common_name",""))
+        t = categorize_item(itm.get("common_name", ""))
         type_map[t].append(itm)
 
-    # Build parent table
-    tab3_html = build_type_parent_table(type_map)
+    return build_type_parent_table(type_map)
+
+@tab3_bp.route("/")
+def show_tab3():
     return render_template(
         "index.html",
         tab1_html="",
         tab2_html="",
-        tab3_html=tab3_html,
+        tab3_html=get_tab3_content(),
         tab4_html="",
+        tab5_html="",
         active_tab="tab3"
     )
 
 def build_type_parent_table(type_map):
-    """
-    3 columns => [ +, Type, total_items ]
-    Expanding => Aggregated by common_name.
-    """
     table_html = """
     <table id="tab3Table" class="table table-striped table-bordered">
       <thead>
@@ -97,7 +73,7 @@ def build_type_parent_table(type_map):
 
     for t, items_for_type in type_map.items():
         aggregator_html = build_name_aggregator_table(items_for_type)
-        safe_agg = aggregator_html.replace('"','&quot;')
+        safe_agg = aggregator_html.replace('"', '"')
 
         table_html += f"""
         <tr data-child="{safe_agg}">
@@ -110,18 +86,13 @@ def build_type_parent_table(type_map):
     return table_html
 
 def build_name_aggregator_table(items):
-    """
-    Aggregator by name => 4 columns => [ +, common_name, repair_count, cleaning_count, inspection_count ]
-    Expanding => full detail.
-    """
-    from collections import defaultdict
     cname_map = defaultdict(list)
     for itm in items:
-        cname = itm.get("common_name","(No Name)")
+        cname = itm.get("common_name", "(No Name)")
         cname_map[cname].append(itm)
 
     table_html = """
-    <table class='name-table table table-sm table-bordered'>
+    <table class='name-table table table-sm table-bordered' data-colcount='5'>
       <thead>
         <tr>
           <th></th>
@@ -139,7 +110,7 @@ def build_name_aggregator_table(items):
         inspection_count = sum(1 for itm in sublist if needs_service(itm) and "inspect" in itm.get("status_notes", "").lower())
 
         detail_html = build_detail_table(sublist)
-        safe_detail = detail_html.replace('"','&quot;')
+        safe_detail = detail_html.replace('"', '"')
 
         table_html += f"""
         <tr data-child2="{safe_detail}">
@@ -154,11 +125,8 @@ def build_name_aggregator_table(items):
     return table_html
 
 def build_detail_table(items):
-    """
-    Final detail table with full columns.
-    """
     table_html = """
-    <table class='detail-table table table-sm table-striped'>
+    <table class='detail-table table table-sm table-striped' data-colcount='10'>
       <thead>
         <tr>
           <th>tag_id</th>
@@ -178,16 +146,16 @@ def build_detail_table(items):
     for itm in items:
         table_html += f"""
         <tr>
-          <td>{itm.get('tag_id','')}</td>
-          <td>{itm.get('serial_number','')}</td>
-          <td>{itm.get('rental_class_num','')}</td>
-          <td>{itm.get('common_name','')}</td>
-          <td>{itm.get('status','')}</td>
-          <td>{itm.get('bin_location','')}</td>
-          <td>{itm.get('quality','')}</td>
-          <td>{itm.get('notes','')}</td>
-          <td>{itm.get('status_notes','')}</td>
-          <td>{itm.get('date_last_scanned','')}</td>
+          <td>{itm.get('tag_id', '')}</td>
+          <td>{itm.get('serial_number', '')}</td>
+          <td>{itm.get('rental_class_num', '')}</td>
+          <td>{itm.get('common_name', '')}</td>
+          <td>{itm.get('status', '')}</td>
+          <td>{itm.get('bin_location', '')}</td>
+          <td>{itm.get('quality', '')}</td>
+          <td>{itm.get('notes', '')}</td>
+          <td>{itm.get('status_notes', '')}</td>
+          <td>{itm.get('date_last_scanned', '')}</td>
         </tr>
         """
     table_html += "</tbody></table>"
