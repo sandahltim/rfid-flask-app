@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Coding Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet" />
+</head>
+<body>
+    <h1>AI Coding Assistant</h1>
+    <div id="chat-container">
+        <div id="chat-output"></div>
+        <textarea id="user-input" placeholder="Ask me anything about coding..."></textarea>
+        <button onclick="sendMessage()">Send</button>
+        <input type="file" id="file-input" accept=".py,.txt">
+        <button onclick="uploadFile()">Upload File</button>
+        <button onclick="checkGitStatus()">Git Status</button>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>
